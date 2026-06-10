@@ -1,0 +1,5 @@
+﻿[server]
+port = 8620
+enableXsrfProtection = false
+[browser]
+gatherUsageStats = false

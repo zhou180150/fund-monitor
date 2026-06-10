@@ -1,0 +1,15 @@
+﻿{
+  "funds": [
+    {
+      "code": "110011",
+      "name": "易方达优质精选混合(QDII)"
+    },
+    {
+      "code": "005827",
+      "name": "易方达蓝筹精选混合"
+    }
+  ],
+  "stocks": [],
+  "benchmark": "sh000300",
+  "refresh_interval_seconds": 120
+}
