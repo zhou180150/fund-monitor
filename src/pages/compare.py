@@ -1,15 +1,15 @@
-﻿import streamlit as st
+﻿# compare.py - 对比页面（移动端优化）
+
+import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
-from datetime import datetime
 
 def _calc_metrics(daily_chg_series):
-    """计算基金指标：夏普比率、波动率、最大回撤、胜率"""
     chgs = daily_chg_series.dropna()
     if len(chgs) < 5:
         return {}
-    vol = chgs.std() * np.sqrt(252)  # 年化波动率
+    vol = chgs.std() * np.sqrt(252)
     sharpe = (chgs.mean() / chgs.std() * np.sqrt(252)) if chgs.std() > 0 else 0
     cumulative = (1 + chgs / 100).cumprod()
     rolling_max = cumulative.expanding().max()
@@ -18,15 +18,15 @@ def _calc_metrics(daily_chg_series):
     return {
         "年化波动率": f"{vol:.1f}%",
         "夏普比率": f"{sharpe:.2f}",
-        "区间最大回撤": f"{dd:.1f}%",
+        "最大回撤": f"{dd:.1f}%",
         "胜率": f"{wr:.0f}%",
     }
 
 def render_compare_page(all_funds_data, index_history):
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:28px;font-weight:700;color:#e6e9f0">对比</div>
-        <div style="font-size:12px;color:#5a5d6a;background:#1a1d29;padding:4px 10px;border-radius:6px">多基金 + 基准</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:20px;font-weight:700;color:#e6e9f0">对比</div>
+        <div style="font-size:10px;color:#5a5d6a;background:#1a1d29;padding:2px 8px;border-radius:4px">多基金+基准</div>
     </div>""", unsafe_allow_html=True)
 
     if not all_funds_data:
@@ -39,11 +39,11 @@ def render_compare_page(all_funds_data, index_history):
         if fund_data.get("history"):
             df = pd.DataFrame(fund_data["history"])
             df["net_value"] = pd.to_numeric(df["net_value"], errors="coerce")
-            name = fund_data.get("name", fund_code)[:12]
+            name = fund_data.get("name", fund_code)[:10]
             fig.add_trace(go.Scatter(
                 x=df["date"], y=df["net_value"],
                 mode="lines", name=name,
-                line=dict(width=2.5),
+                line=dict(width=1.5),
             ))
 
     if index_history:
@@ -52,22 +52,21 @@ def render_compare_page(all_funds_data, index_history):
             fig.add_trace(go.Scatter(
                 x=df_idx["date"], y=df_idx["close"],
                 mode="lines", name="沪深300",
-                line=dict(color="rgba(255,183,77,0.7)", width=2, dash="dash"),
+                line=dict(color="rgba(255,183,77,0.7)", width=1.5, dash="dash"),
             ))
 
     fig.update_layout(
-        height=400, margin=dict(l=0, r=0, t=10, b=0),
+        height=250, margin=dict(l=0, r=0, t=5, b=0),
         paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
-        font=dict(color="#8892b0", size=11),
-        xaxis=dict(showgrid=False, linecolor="#2a2d3a"),
+        font=dict(color="#8892b0", size=9),
+        xaxis=dict(showgrid=False, linecolor="#2a2d3a", tickangle=-45),
         yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=8)),
     )
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    # 横向指标对比表（含夏普比率、波动率）
-    st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
+    # 指标对比表
     rows = []
     for fund_code, fund_data in all_funds_data.items():
         if fund_data.get("history"):
@@ -78,10 +77,11 @@ def render_compare_page(all_funds_data, index_history):
                 ), errors="coerce"
             )
             metrics = _calc_metrics(daily_chg)
-            row = {"基金": fund_data.get("name", fund_code)[:15]}
-            row["近5日"] = f"{daily_chg.tail(5).sum():+.2f}%" if len(daily_chg) >= 5 else "N/A"
-            row["近20日"] = f"{daily_chg.tail(20).sum():+.2f}%" if len(daily_chg) >= 20 else "N/A"
-            row.update(metrics)
+            row = {"基金": fund_data.get("name", fund_code)[:12]}
+            row["近5日"] = f"{daily_chg.tail(5).sum():+.1f}%" if len(daily_chg) >= 5 else "N/A"
+            row["夏普"] = metrics.get("夏普比率", "N/A")
+            row["波动"] = metrics.get("年化波动率", "N/A")
+            row["回撤"] = metrics.get("最大回撤", "N/A")
             rows.append(row)
 
     if index_history:
@@ -94,74 +94,46 @@ def render_compare_page(all_funds_data, index_history):
         if daily_idx:
             da = pd.Series(daily_idx)
             idx_metrics = _calc_metrics(da)
-            row = {"基金": "沪深300 (基准)"}
-            row["近5日"] = f"{da.tail(5).sum():+.2f}%" if len(da) >= 5 else "N/A"
-            row["近20日"] = f"{da.tail(20).sum():+.2f}%" if len(da) >= 20 else "N/A"
-            row.update(idx_metrics)
+            row = {"基金": "沪深300"}
+            row["近5日"] = f"{da.tail(5).sum():+.1f}%" if len(da) >= 5 else "N/A"
+            row["夏普"] = idx_metrics.get("夏普比率", "N/A")
+            row["波动"] = idx_metrics.get("年化波动率", "N/A")
+            row["回撤"] = idx_metrics.get("最大回撤", "N/A")
             rows.append(row)
 
     if rows:
         df_table = pd.DataFrame(rows)
-        # 高亮夏普比率
-        html_rows = ""
-        columns = df_table.columns.tolist()
-        for _, r in df_table.iterrows():
-            cells = ""
-            for col in columns:
-                val = r[col]
-                color = "#e6e9f0"
-                if col in ("近5日", "近20日"):
-                    try:
-                        v = float(str(val).replace("%", "").replace("N/A", "0"))
-                        color = "#00c853" if v >= 0 else "#ff1744"
-                    except:
-                        pass
-                if col == "夏普比率":
-                    try:
-                        sv = float(str(val))
-                        color = "#00c853" if sv > 0.5 else ("#ff9800" if sv > 0 else "#ff1744")
-                    except:
-                        pass
-                cells += f'<td style="padding:8px 12px;color:{color};border-bottom:1px solid #1a1d29">{val}</td>'
-            html_rows += f"<tr><td style='padding:8px 12px;color:#e6e9f0;border-bottom:1px solid #1a1d29;font-weight:500'>{r['基金']}</td>{cells}</tr>"
+        styled = df_table.style.applymap(
+            lambda v: "color:#00c853" if isinstance(v, str) and v.startswith("+") else (
+                     "color:#ff1744" if isinstance(v, str) and v.startswith("-") else ""),
+            subset=["近5日"]
+        )
+        st.dataframe(styled, use_container_width=True, hide_index=True)
 
-        headers = "".join([f'<th style="padding:10px 12px;text-align:left;color:#8892b0;font-weight:500">{c}</th>' for c in columns])
-        st.markdown(f"""
-        <div style="background:#0e1117;border:1px solid #2a2d3a;border-radius:10px;overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px">
-                <thead><tr style="background:#1a1d29">{headers}</tr></thead>
-                <tbody>{html_rows}</tbody>
-            </table>
-        </div>""", unsafe_allow_html=True)
-
-    # 夏普比率条形图
+    # 夏普比率横向条形图
     if rows:
-        st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
-        sharpes = [r for r in rows if r.get("夏普比率") and r["夏普比率"] != "N/A"]
+        sharpes = [(r["基金"], r["夏普"]) for r in rows if r.get("夏普") and r["夏普"] != "N/A"]
         if sharpes:
-            fig_sharpe = go.Figure()
-            for r in sharpes:
+            fig_s = go.Figure()
+            for name, sv_str in sharpes:
                 try:
-                    sv = float(r["夏普比率"])
+                    sv = float(sv_str)
                     color = "#00c853" if sv > 0.5 else ("#ff9800" if sv > 0 else "#ff1744")
-                    fig_sharpe.add_trace(go.Bar(
-                        x=[r["基金"]], y=[sv],
+                    fig_s.add_trace(go.Bar(
+                        x=[name], y=[sv],
                         marker_color=color,
                         text=f"{sv:.2f}", textposition="outside",
-                        textfont=dict(size=11),
-                        width=0.5,
+                        textfont=dict(size=8),
+                        width=0.4,
                     ))
                 except:
                     pass
-            fig_sharpe.update_layout(
-                title=dict(text="夏普比率对比", font=dict(color="#8892b0", size=13)),
-                height=250, margin=dict(l=0, r=0, t=30, b=0),
+            fig_s.update_layout(
+                height=180, margin=dict(l=0, r=0, t=5, b=0),
                 paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
-                font=dict(color="#8892b0", size=11),
+                font=dict(color="#8892b0", size=8),
                 xaxis=dict(showgrid=False, linecolor="#2a2d3a"),
-                yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a", title="夏普比率"),
+                yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a", title="夏普"),
                 showlegend=False,
             )
-            st.plotly_chart(fig_sharpe, use_container_width=True, config={"displayModeBar": False})
-
-    st.markdown("<div style='margin-top:16px;font-size:11px;color:#3a3d4a;text-align:center'>夏普比率 > 0.5 良好, > 1 优秀 | 基准为沪深300</div>", unsafe_allow_html=True)
+            st.plotly_chart(fig_s, use_container_width=True, config={"displayModeBar": False})

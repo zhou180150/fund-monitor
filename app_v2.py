@@ -1,4 +1,4 @@
-﻿# app_v2.py - 基金监控看板入口
+﻿# app_v2.py - 基金监控看板入口（移动端优化版）
 # 运行: streamlit run app_v2.py
 
 import streamlit as st
@@ -27,48 +27,38 @@ from src.pages.compare import render_compare_page
 from src.pages.recommend import render_recommend_page
 from src.data.db import save_snapshot, save_chat, save_ai_report, cleanup, get_stats
 
-# 页面配置
-GLOBAL_CSS = """
+# ============================================
+# 全局 CSS（Mobile-First 设计）
+# ============================================
+
+MOBILE_CSS = """
 <style>
+    /* 基础主题 */
     .stApp { background-color: #0e1117; }
     .stApp header { background-color: #0e1117; }
+
+    /* 侧边栏 */
     section[data-testid="stSidebar"] {
         background-color: #11141c;
         border-right: 1px solid #1a1d29;
     }
-    section[data-testid="stSidebar"] * {
-        color: #c5c8d4 !important;
-    }
-    section[data-testid="stSidebar"] .st-caption {
-        color: #8892b0 !important;
-        font-size: 12px !important;
-    }
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3,
-    section[data-testid="stSidebar"] .st-emotion-cache-vmpjyt {
-        color: #e6e9f0 !important;
-        font-weight: 600 !important;
-    }
-    section[data-testid="stSidebar"] .st-emotion-cache-1aehpvj {
-        color: #8892b0 !important;
-        font-size: 13px !important;
-    }
+    section[data-testid="stSidebar"] * { color: #c5c8d4 !important; }
+    section[data-testid="stSidebar"] .st-caption { color: #8892b0 !important; font-size: 12px !important; }
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 { color: #e6e9f0 !important; font-weight: 600 !important; }
+
+    /* 指标卡片 */
     div[data-testid="metric-container"] {
         background: #1a1d29;
         border: 1px solid #2a2d3a;
         border-radius: 10px;
         padding: 12px 16px;
     }
-    div[data-testid="metric-container"] label {
-        color: #8892b0 !important;
-        font-size: 13px !important;
-    }
-    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        color: #e6e9f0 !important;
-        font-size: 26px !important;
-        font-weight: 600 !important;
-    }
+    div[data-testid="metric-container"] label { color: #8892b0 !important; font-size: 12px !important; }
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"] { color: #e6e9f0 !important; font-weight: 600 !important; }
+
+    /* 表格 */
     div[data-testid="stDataFrame"] th {
         background: #1a1d29 !important;
         color: #8892b0 !important;
@@ -78,20 +68,22 @@ GLOBAL_CSS = """
         color: #c5c8d4 !important;
         border-bottom: 1px solid #1a1d29 !important;
     }
+
+    /* 按钮 */
     div.stButton button {
         background: #1a1d29;
         border: 1px solid #2a2d3a;
         color: #e6e9f0;
         border-radius: 8px;
     }
-    div.stButton button:hover {
-        border-color: #64b5f6;
-    }
+    div.stButton button:hover { border-color: #64b5f6; }
+
+    /* Radio 选择组 */
     div[role="radiogroup"] label {
         background: #1a1d29 !important;
         border: 1px solid #2a2d3a !important;
         border-radius: 8px !important;
-        padding: 8px 20px !important;
+        padding: 8px 16px !important;
         color: #8892b0 !important;
     }
     div[role="radiogroup"] label[data-checked="true"] {
@@ -99,25 +91,86 @@ GLOBAL_CSS = """
         border-color: #64b5f6 !important;
         color: #e6e9f0 !important;
     }
-    ::-webkit-scrollbar { width: 6px; }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #0e1117; }
-    ::-webkit-scrollbar-thumb { background: #2a2d3a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #2a2d3a; border-radius: 2px; }
+
+    /* ---- 移动端优化 (Mobile-First) ---- */
+
+    /* 窄屏幕：侧边栏自动缩窄，指标卡紧凑 */
     @media (max-width: 768px) {
-        section[data-testid="stSidebar"] { min-width: 100% !important; }
-        div[data-testid="metric-container"] { padding: 8px 10px !important; }
-        div[data-testid="metric-container"] div[data-testid="stMetricValue"] { font-size: 20px !important; }
+        section[data-testid="stSidebar"] {
+            min-width: 100% !important;
+            max-width: 100% !important;
+        }
+        div[data-testid="metric-container"] {
+            padding: 8px 10px !important;
+        }
+        div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+            font-size: 18px !important;
+        }
+        div[data-testid="metric-container"] label {
+            font-size: 11px !important;
+        }
+        /* 让 plotly 图表自适应 */
+        .js-plotly-plot .plotly svg { max-width: 100% !important; }
+        div[data-testid="stVerticalBlock"] {
+            gap: 0.5rem !important;
+        }
+        /* 按钮紧凑 */
+        div.stButton button {
+            padding: 4px 10px !important;
+            font-size: 12px !important;
+        }
+        /* radio 组单行缩窄 */
+        div[role="radiogroup"] {
+            gap: 4px !important;
+        }
+        div[role="radiogroup"] label {
+            padding: 6px 10px !important;
+            font-size: 12px !important;
+        }
+        /* 表行缩小 */
+        div[data-testid="stDataFrame"] td,
+        div[data-testid="stDataFrame"] th {
+            padding: 4px 6px !important;
+            font-size: 11px !important;
+        }
+        /* data table 防止溢出 */
+        div[data-testid="stDataFrame"] {
+            overflow-x: auto !important;
+        }
+        /* 隐藏侧边栏导航图标简化 */
+        section[data-testid="stSidebar"] .st-emotion-cache-1aehpvj {
+            font-size: 12px !important;
+        }
+    }
+
+    /* 超小屏 (<400px): 更激进压缩 */
+    @media (max-width: 400px) {
+        div[data-testid="metric-container"] {
+            padding: 4px 6px !important;
+        }
+        div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+            font-size: 14px !important;
+        }
+        div[data-testid="stVerticalBlock"] {
+            gap: 0.25rem !important;
+        }
     }
 </style>
 """
 
 st.set_page_config(
-    page_title="基金监控看板",
+    page_title="基金监控",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
+st.markdown(MOBILE_CSS, unsafe_allow_html=True)
 
 # 加载配置
 @st.cache_data(ttl=60)
@@ -130,12 +183,11 @@ config = load_config()
 funds = config.get("funds", [])
 benchmark = config.get("benchmark", "sh000300")
 
-# DeepSeek 初始化（优先从环境变量取，兼容 Streamlit Cloud Secrets）
 deepseek_key = os.getenv("DEEPSEEK_API_KEY", config.get("deepseek_api_key", ""))
 ai = AIAdvisor(deepseek_key)
 
 # ============================================
-# 数据加载函数
+# 数据加载函数（缓存）
 # ============================================
 
 @st.cache_data(ttl=120, show_spinner=False)
@@ -172,118 +224,101 @@ def load_news_data(keywords=None):
     return news
 
 # ============================================
-# 侧边栏
+# 侧边栏（移动端紧凑版）
 # ============================================
 
-st.sidebar.title("📊 基金监控")
-st.sidebar.caption(f"交易日 {date.today()}")
+# 用纯文字标题节省空间
+st.sidebar.markdown("**📊 基金监控**")
+st.sidebar.caption(date.today().strftime("%m-%d"))
 
-# 清理按钮
-with st.sidebar.popover("⚙️ 设置", use_container_width=True):
-    if st.button("🧹 清理过期数据"):
-        try:
-            cleanup()
-            st.toast("已清理过期数据", icon="✅")
-        except Exception as e:
-            st.toast(f"清理失败: {e}", icon="❌")
-    if st.button("📊 数据库统计"):
-        stats = get_stats()
-        st.json(stats)
+# 导航（4 项在小屏自动换行，效果还可接受）
+page = st.sidebar.radio("", ["盯盘", "复盘", "对比", "推荐"], horizontal=True)
 
-page = st.sidebar.radio("导航", ["📡 盯盘", "📊 复盘", "⚖️ 对比", "🎯 推荐"], horizontal=True)
+# 第一组操作按钮
+btn_cols = st.sidebar.columns([1, 1, 1])
+with btn_cols[0]:
+    if st.button("🔄 刷新", use_container_width=True):
+        st.cache_data.clear()
+with btn_cols[1]:
+    with st.popover("⚙️"):
+        if st.button("🧹 清理"):
+            try:
+                cleanup()
+                st.toast("已清理", icon="✅")
+            except Exception as e:
+                st.toast(f"失败: {e}", icon="❌")
+        if st.button("📊 统计"):
+            stats = get_stats()
+            st.json(stats)
+with btn_cols[2]:
+    if st.button("📡 更新AI", use_container_width=True):
+        st.session_state.ai_report_generated = False
 
-if st.sidebar.button("🔄 刷新数据", use_container_width=True):
-    st.cache_data.clear()
-
+# 基金列表（精简显示）
 st.sidebar.divider()
-st.sidebar.caption("当前关注:")
 for f in funds:
-    st.sidebar.markdown(f"**{f['name']}** ({f['code']})")
+    st.sidebar.markdown(f"**{f['name']}**")
 
-# ============================================
-# AI 管家聊天区
-# ============================================
-
+# -------- AI 管家（折叠式，不占默认空间） --------
 st.sidebar.divider()
-st.sidebar.markdown(
-    "<div style='font-size:14px;font-weight:600;color:#64b5f6;margin:4px 0'>🤖 AI 管家</div>",
-    unsafe_allow_html=True
-)
+with st.sidebar.expander("🤖 AI 管家", expanded=False):
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = [
+            {"role": "assistant", "content": "我是 AI 基金管家，随时为你分析持仓、市场或推荐基金。"}
+        ]
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"role": "assistant", "content": "我是 AI 基金管家，随时为你分析持仓、市场或推荐基金。"}
-    ]
+    # 快捷按钮
+    qcols = st.columns(3)
+    q_texts = ["风险", "市场", "加仓"]
+    q_keys = ["risk", "market", "position"]
+    for i, (qt, qk) in enumerate(zip(q_texts, q_keys)):
+        with qcols[i]:
+            if st.button(qt, key=f"qq_{i}", use_container_width=True):
+                st.session_state._quick_q = qk
 
-# 快捷问题
-quick_qs = ["我的基金风险如何", "今天市场怎么样", "这个位置该不该加仓"]
-qs_keys = ["risk", "market", "position"]
-cols = st.sidebar.columns(3)
-for i, q in enumerate(quick_qs):
-    with cols[i]:
-        if st.button(q[:4], key=f"qq_{i}", use_container_width=True):
-            st.session_state._quick_q = qs_keys[i]
-
-# 聊天输入
-user_input = st.sidebar.chat_input("问我任何基金问题...")
-
-# 处理快捷提问
-quick_trigger = st.session_state.pop("_quick_q", None)
-if quick_trigger:
-    q_map = {"risk": "我的基金风险如何，请给出风险等级和操作建议", "market": "今天市场怎么样，情绪如何", "position": "这个位置该不该加仓"}
-    user_input = q_map.get(quick_trigger, "")
-
-if user_input:
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
-
-    with st.spinner("AI 思考中..."):
-        try:
-            fd_cache = st.session_state.get("_funds_cache", {})
-            ns_cache = st.session_state.get("_news_cache", [])
-            ix_cache = st.session_state.get("_index_cache", [])
-            fund_lines = "\n".join([f"- {v.get('name',k) if v else k}" for k, v in fd_cache.items()])
-            idx_line = ""
-            if ix_cache:
-                i = ix_cache[0] if isinstance(ix_cache, list) else ix_cache
-                if i and "error" not in i:
-                    idx_line = f"\n沪深300: {i.get('price','')} ({i.get('change_pct','')}%)"
-            ctx = f"用户持仓:\n{fund_lines}{idx_line}\n\n新闻: {len(ns_cache)}条今天的\n\n问题: {user_input}"
-            resp = ai.call_api(
-                "你是一个专业的中国基金分析管家，回答简洁有依据。",
-                ctx, max_tokens=500
-            )
-            st.session_state.chat_history.append({"role": "assistant", "content": resp})
-            # 保存到数据库
-            try:
-                save_chat(user_input, resp, {"funds": list(fd_cache.keys())})
-            except Exception as db_err:
-                st.toast(f"聊天记录保存失败: {db_err}", icon="⚠️")
-        except Exception as e:
-            err_msg = f"[分析失败: {e}]"
-            st.session_state.chat_history.append({"role": "assistant", "content": err_msg})
-            try:
-                save_chat(user_input, err_msg)
-            except Exception:
-                pass
-    st.rerun()
-
-# 聊天显示区
-with st.sidebar.expander("💬 对话记录", expanded=True):
-    for msg in st.session_state.chat_history[-8:]:
+    # 对话记录
+    for msg in st.session_state.chat_history[-5:]:
         if msg["role"] == "assistant":
             st.markdown(
-                f"""<div style="background:#1a1d29;border:1px solid #2a2d3a;border-radius:10px;padding:10px;
-                margin-bottom:6px;font-size:12px;line-height:1.5;color:#c5c8d4">{msg["content"][:300]}</div>""",
-                unsafe_allow_html=True
-            )
+                f"""<div style="background:#1a1d29;border:1px solid #2a2d3a;border-radius:8px;padding:8px;margin-bottom:4px;font-size:12px;line-height:1.4;color:#c5c8d4">{msg["content"][:200]}</div>""",
+                unsafe_allow_html=True)
         else:
             st.markdown(
-                f"""<div style="text-align:right;padding:6px 10px;margin-bottom:4px;font-size:12px;color:#8892b0">
-                你：{msg["content"][:80]}</div>""",
-                unsafe_allow_html=True
-            )
+                f"""<div style="text-align:right;padding:4px 8px;font-size:11px;color:#8892b0">你：{msg["content"][:60]}</div>""",
+                unsafe_allow_html=True)
 
-st.sidebar.caption("Powered by DeepSeek")
+    # 输入框
+    user_input = st.chat_input("问基金问题...")
+
+    # 处理快捷提问
+    quick_trigger = st.session_state.pop("_quick_q", None)
+    if quick_trigger:
+        q_map = {"risk": "我的基金风险如何，请给出风险等级和操作建议", "market": "今天市场怎么样，情绪如何", "position": "这个位置该不该加仓"}
+        user_input = q_map.get(quick_trigger, "")
+
+    if user_input:
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        with st.spinner("思考中..."):
+            try:
+                fd_cache = st.session_state.get("_funds_cache", {})
+                ns_cache = st.session_state.get("_news_cache", [])
+                ix_cache = st.session_state.get("_index_cache", [])
+                fund_lines = "\n".join([f"- {v.get('name',k) if v else k}" for k, v in fd_cache.items()])
+                idx_line = ""
+                if ix_cache:
+                    i = ix_cache[0] if isinstance(ix_cache, list) else ix_cache
+                    if i and "error" not in i:
+                        idx_line = f"\n沪深300: {i.get('price','')} ({i.get('change_pct','')}%)"
+                ctx = f"用户持仓:\n{fund_lines}{idx_line}\n\n新闻: {len(ns_cache)}条\n\n问题: {user_input}"
+                resp = ai.call_api("你是一个专业的中国基金分析管家，回答简洁有依据。", ctx, max_tokens=500)
+                st.session_state.chat_history.append({"role": "assistant", "content": resp})
+                try:
+                    save_chat(user_input, resp, {"funds": list(fd_cache.keys())})
+                except Exception:
+                    pass
+            except Exception as e:
+                st.session_state.chat_history.append({"role": "assistant", "content": f"[失败: {e}]"})
+        st.rerun()
 
 # ============================================
 # 数据加载
@@ -311,7 +346,6 @@ with st.spinner("加载数据中..."):
                 for h in fund_data["holdings"]:
                     all_stock_codes.append(h["code"])
 
-    # 并行加载行情 & 新闻
     def _load_extra():
         codes = list(set(all_stock_codes))
         results = {}
@@ -335,7 +369,7 @@ with st.spinner("加载数据中..."):
                 results.get("kline", []), results.get("news", []))
     stock_data, index_data, index_history, news_data = _load_extra()
 
-# 持久化到数据库（去重逻辑在 db.py 内部）
+# DB 持久化
 for code, fd in all_funds_data.items():
     est = fd.get("estimate")
     if est and "error" not in est and est.get("estimate_value") is not None:
@@ -348,13 +382,12 @@ for code, fd in all_funds_data.items():
             est.get("estimate_time")
         )
 
-# 缓存数据供 AI 使用
 st.session_state._funds_cache = all_funds_data
 st.session_state._news_cache = news_data
 st.session_state._index_cache = index_data
 
-# AI 日报（页面首次加载时触发一次）
-if "ai_report_generated" not in st.session_state and ai.api_key:
+# AI 日报
+if "ai_report_generated" not in st.session_state:
     st.session_state.ai_report_generated = False
 
 if not st.session_state.ai_report_generated and ai.api_key:
@@ -376,8 +409,8 @@ if not st.session_state.ai_report_generated and ai.api_key:
                 save_ai_report("risk", report["risk"], fund_codes)
             if report.get("market"):
                 save_ai_report("market", report["market"], fund_codes)
-        except Exception as db_err:
-            st.toast(f"AI 报告保存失败: {db_err}", icon="⚠️")
+        except Exception:
+            pass
     except Exception as e:
         st.session_state.ai_report = {"risk": f"[分析失败: {e}]", "market": ""}
         st.session_state.ai_report_generated = True
@@ -388,16 +421,13 @@ ai_analysis = st.session_state.get("ai_report")
 # 页面路由
 # ============================================
 
-page_key = page.replace("📡 ", "").replace("📊 ", "").replace("⚖️ ", "").replace("🎯 ", "")
-page_key = page_key.replace("盯盘", "watch").replace("复盘", "review").replace("对比", "compare").replace("推荐", "recommend")
-
-if page_key == "watch":
+if page == "盯盘":
     default_fund = funds[0]["code"]
     fd = all_funds_data.get(default_fund)
     if fd:
         render_watch_page(fd, stock_data, index_data, news_data, ai_analysis)
 
-elif page_key == "review":
+elif page == "复盘":
     default_fund = funds[0]["code"]
     fd = all_funds_data.get(default_fund)
     ai_summary = None
@@ -413,13 +443,13 @@ elif page_key == "review":
             pass
         render_review_page(fd, stock_data, index_data, ai_summary)
 
-elif page_key == "compare":
+elif page == "对比":
     render_compare_page(all_funds_data, index_history)
 
-elif page_key == "recommend":
+elif page == "推荐":
     render_recommend_page(ai)
 
-# 自动刷新（不阻塞线程）
+# 自动刷新
 refresh_gap = config.get("refresh_interval_seconds", 120)
 if "refresh_ts" not in st.session_state:
     st.session_state.refresh_ts = time.time()
@@ -427,8 +457,7 @@ elif time.time() - st.session_state.refresh_ts >= refresh_gap:
     st.session_state.refresh_ts = time.time()
     st.cache_data.clear()
 
-# 页脚
 st.markdown("""
-<div style="margin-top:20px;font-size:11px;color:#3a3d4a;text-align:center">
-数据来源: 天天基金 / 腾讯证券 / 新浪财经 | 自动刷新 120s | 投资有风险
+<div style="margin-top:16px;font-size:10px;color:#3a3d4a;text-align:center">
+天天基金/腾讯证券/新浪财经 | 自动 120s
 </div>""", unsafe_allow_html=True)
