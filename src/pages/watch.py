@@ -1,4 +1,4 @@
-﻿# watch.py - 盯盘页面（移动端优化）
+# watch.py - 盯盘页面（移动端优化）
 
 import streamlit as st
 import pandas as pd
@@ -153,4 +153,4 @@ def render_watch_page(fund_data, stock_data, index_data, news_data, ai_analysis)
             risk_text = ai_analysis.get("risk", "") if isinstance(ai_analysis, dict) else str(ai_analysis)
             st.markdown(
                 f"""<div style="background:#1a1d29;border:1px solid #2a2d3a;border-radius:6px;padding:8px;font-size:11px;color:#c5c8d4;line-height:1.4">{risk_text[:200]}</div>""",
-                unsafe_allow_html=True)
+                unsafe_allow_html=True)

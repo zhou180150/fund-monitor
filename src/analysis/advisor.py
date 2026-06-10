@@ -1,4 +1,4 @@
-﻿# advisor.py - AI 管家：基于技术知识库的基金分析
+# advisor.py - AI 管家：基于技术知识库的基金分析
 import json
 import requests
 import numpy as np
@@ -162,4 +162,4 @@ class AIAdvisor:
         return {
             "risk": self.risk_check(funds_data),
             "market": self.market_analysis(index_data, news_data),
-        }
+        }

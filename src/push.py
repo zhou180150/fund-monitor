@@ -1,4 +1,4 @@
-﻿# push.py - 推送模块（为后续飞书/邮件推送预留）
+# push.py - 推送模块（为后续飞书/邮件推送预留）
 # 当前版本：仅生成推送内容，尚未集成实际发送
 
 import json
@@ -45,4 +45,4 @@ def generate_push_report(db_stats, funds_data, ai_report):
 # 3. 推送格式：
 #    - 标题：[基金提醒] 你的基金需要关注
 #    - 内容模板：包含风险等级、涨跌幅、市场情绪、操作建议
-#    - 链接：直接跳转到 Streamlit 看板
+#    - 链接：直接跳转到 Streamlit 看板

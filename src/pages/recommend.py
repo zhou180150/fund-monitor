@@ -1,4 +1,4 @@
-﻿# recommend.py - AI 推荐页面（移动端优化）
+# recommend.py - AI 推荐页面（移动端优化）
 
 import streamlit as st
 import pandas as pd
@@ -74,4 +74,4 @@ def render_recommend_page(ai):
             st.markdown("<div style='font-size:12px;font-weight:600;color:#e6e9f0;margin:8px 0 4px'>全市场排行</div>", unsafe_allow_html=True)
             st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st.info("选择条件后点击 ▶ 分析")
+        st.info("选择条件后点击 ▶ 分析")

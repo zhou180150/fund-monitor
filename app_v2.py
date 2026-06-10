@@ -1,4 +1,4 @@
-﻿# app_v2.py - 基金监控看板入口（移动端优化版）
+# app_v2.py - 基金监控看板入口（移动端优化版）
 # 运行: streamlit run app_v2.py
 
 import streamlit as st
@@ -460,4 +460,4 @@ elif time.time() - st.session_state.refresh_ts >= refresh_gap:
 st.markdown("""
 <div style="margin-top:16px;font-size:10px;color:#3a3d4a;text-align:center">
 天天基金/腾讯证券/新浪财经 | 自动 120s
-</div>""", unsafe_allow_html=True)
+</div>""", unsafe_allow_html=True)

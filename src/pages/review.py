@@ -1,4 +1,4 @@
-﻿# review.py - 复盘页面（移动端优化）
+# review.py - 复盘页面（移动端优化）
 
 import streamlit as st
 import pandas as pd
@@ -157,4 +157,4 @@ def render_review_page(fund_data, stock_data, index_data, ai_analysis):
                 yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a"),
                 barmode="group", showlegend=False,
             )
-            st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})

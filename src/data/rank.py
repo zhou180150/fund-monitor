@@ -1,4 +1,4 @@
-﻿# rank.py - 天天基金排行榜数据
+# rank.py - 天天基金排行榜数据
 # 数据来源: http://fund.eastmoney.com/data/rankhandler.aspx
 
 import requests
@@ -48,4 +48,4 @@ def get_fund_rank(sort_by="return", order="desc", page=1, per_page=50):
         return results
     except Exception as e:
         print(f"排行榜请求失败: {e}")
-        return []
+        return []

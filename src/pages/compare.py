@@ -1,4 +1,4 @@
-﻿# compare.py - 对比页面（移动端优化）
+# compare.py - 对比页面（移动端优化）
 
 import streamlit as st
 import pandas as pd
@@ -136,4 +136,4 @@ def render_compare_page(all_funds_data, index_history):
                 yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a", title="夏普"),
                 showlegend=False,
             )
-            st.plotly_chart(fig_s, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig_s, use_container_width=True, config={"displayModeBar": False})
