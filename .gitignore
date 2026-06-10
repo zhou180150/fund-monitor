@@ -1,28 +1,17 @@
-﻿# API keys & secrets
-.env
-
-# 配置文件（不含 api key，只含基金列表）
-# config.json 需要提交（不含 key 即可）
-
-# Python
-__pycache__/
+﻿__pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# Database & cache
+.env
 cache/
 *.db
-
-# Temp files
-*.tmp
+.DS_Store
+*.apk
+*.mmdb
+*.yaml
+*.json.backup
 *.bak
-
-# Temp fix scripts
-fix_*.py
-integrate_*.py
-
-# IDE
+screenshot*.png
+__pycache__/
+.DS_Store
 .idea/
 .vscode/
 *.swp
