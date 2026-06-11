@@ -1,4 +1,4 @@
-# recommend.py - AI 推荐页面（双模式：排行榜 + 新闻驱动）
+﻿# recommend.py - AI 推荐页面（双模式：排行榜 + 新闻驱动）
 
 import streamlit as st
 import pandas as pd
@@ -27,7 +27,7 @@ def render_recommend_page(ai):
 
         if st.session_state.get("rank_loading"):
             with st.spinner("获取排行..."):
-                from src.data.rank import get_fund_rank
+                from src.data.rank import get_fund_rank, enrich_rank_data
                 raw = get_fund_rank(page=1, per_page=top_n)
             if raw:
                 with st.spinner("AI 评估..."):
@@ -36,14 +36,14 @@ def render_recommend_page(ai):
                         from src.analysis.knowledge import FUND_SELECTION_RULES
                         prompt = f"{FUND_SELECTION_RULES}\n\n请分析以下基金，按综合评分排序，推荐前5只，每只给评分和一句话理由：\n\n{ranks}"
                         result = ai.call_api("你是一个专业的基金分析师，严格按照评分规则打分。", prompt, max_tokens=1000)
-                        st.session_state.rank_result = {"raw": raw[:20], "ai_analysis": result}
+                        st.session_state.rank_result = {"raw": enriched, "ai_analysis": result}
                         try:
                             from src.data.db import save_ranking
-                            save_ranking(rank_by, raw[:20])
+                            save_ranking(rank_by, enriched)
                         except Exception:
                             pass
                     except Exception as e:
-                        st.session_state.rank_result = {"raw": raw[:20], "ai_analysis": f"[AI分析失败: {e}]"}
+                        st.session_state.rank_result = {"raw": enriched, "ai_analysis": f"[AI分析失败: {e}]"}
                     st.session_state.rank_loading = False
                 st.rerun()
 
