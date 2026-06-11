@@ -9,12 +9,12 @@ from .knowledge import (
 
 
 class AIAdvisor:
-    def __init__(self, api_key, model="deepseek-chat"):
+    def __init__(self, api_key, model="deepseek-v4-flash"):
         self.api_key = api_key
         self.model = model
         self.url = "https://api.deepseek.com/chat/completions"
 
-    def call_api(self, system_prompt, user_prompt, max_tokens=800):
+    def call_api(self, system_prompt, user_prompt, max_tokens=800, model=None):
         if not self.api_key:
             return "API key 未配置"
         try:
@@ -25,7 +25,7 @@ class AIAdvisor:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": self.model,
+                    "model": model or self.model,
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
@@ -105,7 +105,7 @@ class AIAdvisor:
         data_text = "\n".join([f"基金: {d['name']}\n估值: {d['estimate_value']} 今日: {d['today_change']}%\n回撤: {d['dd_30d']}% 波动率: {d['volatility_20d']}%\n集中度: {d['top3_concentration']}% 趋势: {d['ma_trend']}\n重仓: {', '.join(d['holds_list'])}" for d in indicators])
         system = AI_ANALYSIS_PROMPT.format(knowledge_base=FUND_RISK_RULES + "\n\n" + OPERATION_ADVICE)
         user = "请分析以下基金的风险等级并给出操作建议：\n\n" + data_text
-        return self.call_api(system, user, 800)
+        return self.call_api(system, user, 800, model='deepseek-v4-pro')
 
     def market_analysis(self, index_data, news_data):
         if not self.api_key:
@@ -118,7 +118,7 @@ class AIAdvisor:
         news_text = "\n".join([f"- {n.get('title', '')} [{n.get('source', '')}]" for n in (news_data or [])[:10]])
         system = AI_ANALYSIS_PROMPT.format(knowledge_base=MARKET_RULES)
         user = f"当前市场数据:\n{idx_text}\n\n新闻:\n{news_text}\n\n请判断市场情绪和板块方向。"
-        return self.call_api(system, user, 600)
+        return self.call_api(system, user, 600, model='deepseek-v4-pro')
 
     def daily_report(self, funds_data, index_data, news_data):
         return {"risk": self.risk_check(funds_data), "market": self.market_analysis(index_data, news_data)}
@@ -147,4 +147,4 @@ class AIAdvisor:
         dd_block = "\n".join(dd_lines) if dd_lines else "（无异常）"
         system_prompt = f"你是一个专业的A股基金分析管家。\n{NEWS_DRIVEN_RULES}\n分析要求：\n1. 先把每条新闻映射到具体板块\n2. 计算每个板块今日情绪得分（利好+1，利空-1，中性0）\n3. 排除今日已经大涨的板块（避免追高）\n4. 结合已持仓基金的回撤状态，判断是否应补仓/观望/减仓\n5. 给出今日值得关注的3-5只基金，含推荐理由和风险提示\n6. 禁止推荐今日已经大涨>3%的板块对应基金\n7. 禁止使用模糊词汇，必须给出确定性结论"
         user_prompt = f"## 今日市场\n{idx_text}\n## 已持仓基金\n{holding_block}\n## 回撤预警\n{dd_block}{extra_context}\n## 今日重要新闻\n{news_block}\n请按规则分析，输出格式：\n【今日热点板块】\n板块 | 利好/利空 | 催化剂新闻 | 是否已大涨\n\n【今日值得关注的基金】\n基金名称 | 对应板块 | 推荐理由 | 风险提示\n\n【已持仓基金操作建议】\n基金名称 | 建议(持有/加仓/减仓/观望) | 依据\n\n【总结】一句话今日策略"
-        return self.call_api(system_prompt, user_prompt, max_tokens=1200)
+        return self.call_api(system_prompt, user_prompt, max_tokens=1200, model='deepseek-v4-pro')
