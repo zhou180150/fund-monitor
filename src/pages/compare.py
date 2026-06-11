@@ -35,126 +35,34 @@ def render_compare_page(all_funds_data, index_history):
 
     # 净值叠加图
     fig = go.Figure()
+    # ??????????????=100???????????
     for fund_code, fund_data in all_funds_data.items():
         if fund_data.get("history"):
             df = pd.DataFrame(fund_data["history"])
-            df["net_value"] = pd.to_numeric(df["net_value"], errors="coerce")
-            name = fund_data.get("name", fund_code)[:10]
-            fig.add_trace(go.Scatter(
-                x=df["date"], y=df["net_value"],
-                mode="lines", name=name,
-                line=dict(width=1.5),
-            ))
-
+            vals = pd.to_numeric(df["net_value"], errors="coerce").dropna().values
+            if len(vals) > 0:
+                base = vals[0]
+                norm = (vals / base) * 100 if base > 0 else vals
+                dates = df["date"].iloc[:len(norm)]
+                name = fund_data.get("name", fund_code)[:10]
+                fig.add_trace(go.Scatter(x=dates, y=norm, mode="lines", name=name, line=dict(width=1.5),
+                    hovertemplate="%s%%{y:.1f} (base=100)" % name))
     if index_history:
         df_idx = pd.DataFrame(index_history)
-        if not df_idx.empty:
-            fig.add_trace(go.Scatter(
-                x=df_idx["date"], y=df_idx["close"],
-                mode="lines", name="沪深300",
+        close_vals = pd.to_numeric(df_idx["close"], errors="coerce").dropna().values
+        if len(close_vals) > 0:
+            base_idx = close_vals[0]
+            norm_idx = (close_vals / base_idx) * 100 if base_idx > 0 else close_vals
+            dates_idx = df_idx["date"].iloc[:len(norm_idx)]
+            fig.add_trace(go.Scatter(x=dates_idx, y=norm_idx, mode="lines", name="\u6caa\u6df1300",
                 line=dict(color="rgba(255,183,77,0.7)", width=1.5, dash="dash"),
-            ))
-
-    fig.update_layout(
-        height=250, margin=dict(l=0, r=0, t=5, b=0),
-        paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
+                hovertemplate="%s%%{y:.1f} (base=100)" % "\u6caa\u6df1300"))
+    fig.update_layout(height=250, margin=dict(l=0, r=0, t=5, b=0), paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
         font=dict(color="#8892b0", size=9),
         xaxis=dict(showgrid=False, linecolor="#2a2d3a", tickangle=-45),
-        yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a"),
+        yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a",
+            ticksuffix="%", title="\u76f8\u5bf9\u6536\u76ca\u7387 (base=100)"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=8)),
-    )
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=8)))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-    # 指标对比表
-    rows = []
-    for fund_code, fund_data in all_funds_data.items():
-        if fund_data.get("history"):
-            df = pd.DataFrame(fund_data["history"])
-            daily_chg = pd.to_numeric(
-                df["daily_change_pct"].apply(
-                    lambda x: x.replace("%", "") if isinstance(x, str) else x
-                ), errors="coerce"
-            )
-            metrics = _calc_metrics(daily_chg)
-            row = {"基金": fund_data.get("name", fund_code)[:12]}
-            row["近5日"] = f"{daily_chg.tail(5).sum():+.1f}%" if len(daily_chg) >= 5 else "N/A"
-            row["夏普"] = metrics.get("夏普比率", "N/A")
-            row["波动"] = metrics.get("年化波动率", "N/A")
-            row["回撤"] = metrics.get("最大回撤", "N/A")
-            rows.append(row)
-
-    if index_history:
-        df_idx = pd.DataFrame(index_history)
-        daily_idx = []
-        for i in range(1, len(df_idx)):
-            if df_idx.iloc[i]["close"] and df_idx.iloc[i-1]["close"]:
-                chg = (df_idx.iloc[i]["close"] - df_idx.iloc[i-1]["close"]) / df_idx.iloc[i-1]["close"] * 100
-                daily_idx.append(chg)
-        if daily_idx:
-            da = pd.Series(daily_idx)
-            idx_metrics = _calc_metrics(da)
-            row = {"基金": "沪深300"}
-            row["近5日"] = f"{da.tail(5).sum():+.1f}%" if len(da) >= 5 else "N/A"
-            row["夏普"] = idx_metrics.get("夏普比率", "N/A")
-            row["波动"] = idx_metrics.get("年化波动率", "N/A")
-            row["回撤"] = idx_metrics.get("最大回撤", "N/A")
-            rows.append(row)
-
-    if rows:
-        df_table = pd.DataFrame(rows)
-        cols = df_table.columns.tolist()
-        html_parts = []
-        html_parts.append("<div style=\"background:#0e1117;border:1px solid #2a2d3a;border-radius:8px;overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;min-width:400px\"><thead><tr style=\"background:#1a1d29\">")
-        for c in cols:
-            html_parts.append(f"<th style=\"padding:6px 8px;text-align:left;color:#8892b0;font-weight:500;font-size:11px\">{c}</th>")
-        html_parts.append("</tr></thead><tbody>")
-        for _, r in df_table.iterrows():
-            html_parts.append("<tr>")
-            for col in cols:
-                val = str(r[col])
-                color = "#e6e9f0"
-                if col.find("?") >= 0 and col.find("?") >= 0:
-                    try:
-                        v = float(val.replace("%","").replace("N/A","0"))
-                        color = "#00c853" if v >= 0 else "#ff1744"
-                    except:
-                        pass
-                if col.find("?") >= 0:
-                    try:
-                        sv = float(val)
-                        color = "#00c853" if sv > 0.5 else ("#ff9800" if sv > 0 else "#ff1744")
-                    except:
-                        pass
-                html_parts.append(f"<td style=\"padding:6px 8px;color:{color};border-bottom:1px solid #1a1d29;font-size:11px\">{val}</td>")
-            html_parts.append("</tr>")
-        html_parts.append("</tbody></table></div>")
-        st.markdown("".join(html_parts), unsafe_allow_html=True)
-    # 夏普比率横向条形图
-    if rows:
-        sharpes = [(r["基金"], r["夏普"]) for r in rows if r.get("夏普") and r["夏普"] != "N/A"]
-        if sharpes:
-            fig_s = go.Figure()
-            for name, sv_str in sharpes:
-                try:
-                    sv = float(sv_str)
-                    color = "#00c853" if sv > 0.5 else ("#ff9800" if sv > 0 else "#ff1744")
-                    fig_s.add_trace(go.Bar(
-                        x=[name], y=[sv],
-                        marker_color=color,
-                        text=f"{sv:.2f}", textposition="outside",
-                        textfont=dict(size=8),
-                        width=0.4,
-                    ))
-                except:
-                    pass
-            fig_s.update_layout(
-                height=180, margin=dict(l=0, r=0, t=5, b=0),
-                paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
-                font=dict(color="#8892b0", size=8),
-                xaxis=dict(showgrid=False, linecolor="#2a2d3a"),
-                yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a", title="夏普"),
-                showlegend=False,
-            )
-            st.plotly_chart(fig_s, use_container_width=True, config={"displayModeBar": False})
 
