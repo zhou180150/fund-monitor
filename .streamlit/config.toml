@@ -1,5 +1,2 @@
-[server]
-port = 8620
-enableXsrfProtection = false
-[browser]
-gatherUsageStats = false
+[theme]
+# Streamlit Cloud 使用 runtime.txt 指定 Python 版本
