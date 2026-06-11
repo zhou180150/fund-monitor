@@ -103,13 +103,33 @@ def render_compare_page(all_funds_data, index_history):
 
     if rows:
         df_table = pd.DataFrame(rows)
-        styled = df_table.style.applymap(
-            lambda v: "color:#00c853" if isinstance(v, str) and v.startswith("+") else (
-                     "color:#ff1744" if isinstance(v, str) and v.startswith("-") else ""),
-            subset=["近5日"]
-        )
-        st.dataframe(styled, use_container_width=True, hide_index=True)
-
+        cols = df_table.columns.tolist()
+        html_parts = []
+        html_parts.append("<div style=\"background:#0e1117;border:1px solid #2a2d3a;border-radius:8px;overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;min-width:400px\"><thead><tr style=\"background:#1a1d29\">")
+        for c in cols:
+            html_parts.append(f"<th style=\"padding:6px 8px;text-align:left;color:#8892b0;font-weight:500;font-size:11px\">{c}</th>")
+        html_parts.append("</tr></thead><tbody>")
+        for _, r in df_table.iterrows():
+            html_parts.append("<tr>")
+            for col in cols:
+                val = str(r[col])
+                color = "#e6e9f0"
+                if col.find("?") >= 0 and col.find("?") >= 0:
+                    try:
+                        v = float(val.replace("%","").replace("N/A","0"))
+                        color = "#00c853" if v >= 0 else "#ff1744"
+                    except:
+                        pass
+                if col.find("?") >= 0:
+                    try:
+                        sv = float(val)
+                        color = "#00c853" if sv > 0.5 else ("#ff9800" if sv > 0 else "#ff1744")
+                    except:
+                        pass
+                html_parts.append(f"<td style=\"padding:6px 8px;color:{color};border-bottom:1px solid #1a1d29;font-size:11px\">{val}</td>")
+            html_parts.append("</tr>")
+        html_parts.append("</tbody></table></div>")
+        st.markdown("".join(html_parts), unsafe_allow_html=True)
     # 夏普比率横向条形图
     if rows:
         sharpes = [(r["基金"], r["夏普"]) for r in rows if r.get("夏普") and r["夏普"] != "N/A"]
@@ -136,4 +156,5 @@ def render_compare_page(all_funds_data, index_history):
                 yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a", title="夏普"),
                 showlegend=False,
             )
-            st.plotly_chart(fig_s, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig_s, use_container_width=True, config={"displayModeBar": False})
+
