@@ -1,4 +1,4 @@
-﻿# recommend.py - AI 推荐页面（双模式：排行榜 + 新闻驱动）
+# recommend.py - AI 推荐页面（双模式：排行榜 + 新闻驱动）
 
 import streamlit as st
 import pandas as pd
@@ -32,7 +32,8 @@ def render_recommend_page(ai):
             if raw:
                 with st.spinner("AI 评估..."):
                     try:
-                        ranks = "\n".join([f"{i+1}. {r['name']}({r['code']}) 近1月:{r.get('month_return','N/A')}% 近1年:{r.get('year_return','N/A')}%" for i, r in enumerate(raw[:20])])
+                        enriched = enrich_rank_data(raw[:20])
+                        ranks = "\n".join([f"{i+1}. {r['name']}({r['code']}) 近1月:{r.get('month_return','N/A')}% 近3月:{r.get('quarter_return','N/A')}% 近1年:{r.get('year_return','N/A')}% 回撤30日:{r.get('max_drawdown_30d','N/A')}% 回撤90日:{r.get('max_drawdown_90d','N/A')}% 波动率:{r.get('volatility_20d','N/A')}% 集中度:{r.get('top3_concentration','N/A')}% 规模:{r.get('scale','N/A')} 经理:{r.get('manager_tenure','N/A')}" for i, r in enumerate(enriched)])
                         from src.analysis.knowledge import FUND_SELECTION_RULES
                         prompt = f"{FUND_SELECTION_RULES}\n\n请分析以下基金，按综合评分排序，推荐前5只，每只给评分和一句话理由：\n\n{ranks}"
                         result = ai.call_api("你是一个专业的基金分析师，严格按照评分规则打分。", prompt, max_tokens=1000)

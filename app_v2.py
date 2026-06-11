@@ -455,8 +455,9 @@ refresh_gap = config.get("refresh_interval_seconds", 120)
 if "refresh_ts" not in st.session_state:
     st.session_state.refresh_ts = time.time()
 elif time.time() - st.session_state.refresh_ts >= refresh_gap:
-    st.session_state.refresh_ts = time.time() + 10
+    st.session_state.refresh_ts = time.time()
     st.cache_data.clear()
+    st.rerun()
 
 st.markdown("""
 <div style="margin-top:16px;font-size:10px;color:#3a3d4a;text-align:center">

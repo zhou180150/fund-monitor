@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
+from src.analysis.sector_map import SECTOR_MAP
 
 
 def _card_mobile(title, value, subtitle, color=None):
@@ -17,24 +18,13 @@ def _card_mobile(title, value, subtitle, color=None):
     </div>"""
 
 
-def _guess_sector(name):
-    name = str(name)
-    if any(k in name for k in ["贵州茅台", "五粮液", "洋河", "泸州老窖", "汾酒", "酒"]):
-        return "白酒"
-    if any(k in name for k in ["腾讯", "阿里", "百度", "美团", "京东", "网易", "拼多多"]):
-        return "互联网"
-    if any(k in name for k in ["招行", "平安", "兴业", "工商", "建设", "银行", "保险", "证券"]):
-        return "金融"
-    if any(k in name for k in ["宁德", "比亚迪", "隆基", "阳光电源", "亿纬", "新能源"]):
-        return "新能源"
-    if any(k in name for k in ["迈瑞", "恒瑞", "药明", "复星", "智飞", "医药", "医疗"]):
-        return "医药"
-    if any(k in name for k in ["美的", "格力", "海尔", "海康", "大华"]):
-        return "家电/安防"
-    if any(k in name for k in ["中芯", "韦尔", "北方华创", "兆易", "紫光", "海光", "芯片", "半导体"]):
-        return "半导体"
-    if any(k in name for k in ["紫金", "江西铜", "山东黄金", "中金黄金", "有色"]):
-        return "有色"
+def _stock_to_sector(stock_name):
+    """根据股票名称从 SECTOR_MAP 匹配行业"""
+    name = str(stock_name)
+    for sector_name, sector_info in SECTOR_MAP.items():
+        for kw in sector_info["keywords"]:
+            if kw in name:
+                return sector_name
     return "其他"
 
 
@@ -115,7 +105,7 @@ def render_watch_page(fund_data, stock_data, index_data, news_data, ai_analysis)
         if holdings:
             sector_map = {}
             for h in holdings:
-                sector = _guess_sector(h.get("name", ""))
+                sector = _stock_to_sector(h.get("name", ""))
                 sector_map[sector] = sector_map.get(sector, 0) + h.get("ratio", 0)
             df_sector = pd.DataFrame([{"行业": k, "占比": v} for k, v in sorted(sector_map.items(), key=lambda x: -x[1])])
             colors_pie = px.colors.qualitative.Set3[:len(df_sector)]
@@ -153,4 +143,5 @@ def render_watch_page(fund_data, stock_data, index_data, news_data, ai_analysis)
             risk_text = ai_analysis.get("risk", "") if isinstance(ai_analysis, dict) else str(ai_analysis)
             st.markdown(
                 f"""<div style="background:#1a1d29;border:1px solid #2a2d3a;border-radius:6px;padding:8px;font-size:11px;color:#c5c8d4;line-height:1.4">{risk_text[:200]}</div>""",
-                unsafe_allow_html=True)
+                unsafe_allow_html=True)
+

@@ -35,7 +35,6 @@ def render_compare_page(all_funds_data, index_history):
 
     # 净值叠加图
     fig = go.Figure()
-    # ??????????????=100???????????
     for fund_code, fund_data in all_funds_data.items():
         if fund_data.get("history"):
             df = pd.DataFrame(fund_data["history"])
@@ -46,7 +45,7 @@ def render_compare_page(all_funds_data, index_history):
                 dates = df["date"].iloc[:len(norm)]
                 name = fund_data.get("name", fund_code)[:10]
                 fig.add_trace(go.Scatter(x=dates, y=norm, mode="lines", name=name, line=dict(width=1.5),
-                    hovertemplate="%s%%{y:.1f} (base=100)" % name))
+                    hovertemplate=f"{name} %{{y:.1f}} (base=100)"))
     if index_history:
         df_idx = pd.DataFrame(index_history)
         close_vals = pd.to_numeric(df_idx["close"], errors="coerce").dropna().values
@@ -65,4 +64,45 @@ def render_compare_page(all_funds_data, index_history):
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=8)))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    # ---- 指标对比表 ----
+    metrics_rows = []
+    for fund_code, fund_data in all_funds_data.items():
+        if fund_data.get("history"):
+            df = pd.DataFrame(fund_data["history"])
+            df["net_value"] = pd.to_numeric(df["net_value"], errors="coerce")
+            df["daily_change_pct"] = pd.to_numeric(df["daily_change_pct"].apply(lambda x: str(x).replace("%","")), errors="coerce")
+            vals = df["net_value"].dropna().values
+            chgs = df["daily_change_pct"].dropna().values
+            if len(vals) < 5:
+                continue
+            name = fund_data.get("name", fund_code)[:12]
+            # 收益率
+            ret_1m = round(df["daily_change_pct"].tail(20).sum(), 2) if len(df) >= 20 else "N/A"
+            ret_3m = round(df["daily_change_pct"].tail(60).sum(), 2) if len(df) >= 60 else "N/A"
+            # 波动率
+            vol = round(float(np.std(chgs[-20:]) * np.sqrt(252)), 2) if len(chgs) >= 5 else "N/A"
+            # 最大回撤
+            peak = vals[0]
+            max_dd = 0
+            for v in vals:
+                if v > peak: peak = v
+                dd = (peak - v) / peak * 100
+                if dd > max_dd: max_dd = dd
+            # 胜率
+            wr = round(float((chgs > 0).sum() / len(chgs) * 100), 1) if len(chgs) > 0 else "N/A"
+            metrics_rows.append({
+                "基金": name,
+                "近1月": f"{ret_1m}%" if isinstance(ret_1m, (int, float)) else ret_1m,
+                "近3月": f"{ret_3m}%" if isinstance(ret_3m, (int, float)) else ret_3m,
+                "年化波动": f"{vol}%" if isinstance(vol, (int, float)) else vol,
+                "最大回撤": f"{max_dd:.2f}%",
+                "胜率": f"{wr}%" if isinstance(wr, (int, float)) else wr,
+            })
+    if metrics_rows:
+        st.markdown("<div style='font-size:13px;font-weight:600;color:#e6e9f0;margin:8px 0 4px'>指标对比</div>", unsafe_allow_html=True)
+        st.dataframe(pd.DataFrame(metrics_rows), use_container_width=True, hide_index=True)
+
+    # ---- 对比页底部说明 ----
+    st.caption("净值均以 base=100 归一化，便于比较不同净值的基金走势")
 

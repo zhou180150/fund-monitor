@@ -19,13 +19,7 @@ def render_review_page(fund_data, stock_data, index_data, ai_analysis):
     df = pd.DataFrame(fund_data["history"])
     df["net_value"] = pd.to_numeric(df["net_value"], errors="coerce")
     daily_col = "daily_change_pct"
-    if df[daily_col].dtype == object:
-        df[daily_col] = pd.to_numeric(
-            df[daily_col].apply(lambda x: x.replace("%", "") if isinstance(x, str) else x),
-            errors="coerce",
-        )
-    else:
-        df[daily_col] = pd.to_numeric(df[daily_col], errors="coerce")
+    df[daily_col] = pd.to_numeric(df[daily_col].apply(lambda x: str(x).replace("%", "")), errors="coerce")
 
     # 指标
     total_5d = df[daily_col].tail(5).sum()
@@ -157,4 +151,5 @@ def render_review_page(fund_data, stock_data, index_data, ai_analysis):
                 yaxis=dict(showgrid=True, gridcolor="#1a1d29", linecolor="#2a2d3a"),
                 barmode="group", showlegend=False,
             )
-            st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+
