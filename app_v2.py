@@ -183,7 +183,13 @@ config = load_config()
 funds = config.get("funds", [])
 benchmark = config.get("benchmark", "sh000300")
 
-deepseek_key = os.getenv("DEEPSEEK_API_KEY", config.get("deepseek_api_key", ""))
+# 优先 Streamlit Secrets，其次环境变量，最后 config.json
+try:
+    deepseek_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+except Exception:
+    deepseek_key = ""
+if not deepseek_key:
+    deepseek_key = os.getenv("DEEPSEEK_API_KEY", config.get("deepseek_api_key", ""))
 ai = AIAdvisor(deepseek_key)
 
 # ---- 全局 AI 共享内存（各模块互通） ----
