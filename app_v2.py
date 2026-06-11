@@ -186,6 +186,18 @@ benchmark = config.get("benchmark", "sh000300")
 deepseek_key = os.getenv("DEEPSEEK_API_KEY", config.get("deepseek_api_key", ""))
 ai = AIAdvisor(deepseek_key)
 
+# ---- 全局 AI 共享内存（各模块互通） ----
+if "ai_memory" not in st.session_state:
+    st.session_state.ai_memory = {
+        "daily_risk": None,         # AI 日报：风险评估
+        "daily_market": None,       # AI 日报：市场情绪
+        "daily_report_ts": None,    # 日报生成时间戳
+        "last_fund_scores": {},     # 推荐页评分结果 {code: score}
+        "chat_summary": "",         # 侧边栏对话上下文摘要
+        "last_news_recommend": "",  # 新闻驱动推荐结果
+        "last_rank_analysis": "",   # 排行榜分析结果
+    }
+
 # ============================================
 # 数据加载函数（缓存）
 # ============================================
@@ -404,6 +416,13 @@ if not st.session_state.ai_report_generated and ai.api_key:
         report = ai.daily_report(funds_data, index_data, news_data)
         st.session_state.ai_report = report
         st.session_state.ai_report_generated = True
+        # 写入共享内存
+        mem = st.session_state.ai_memory
+        if report.get("risk"):
+            mem["daily_risk"] = report["risk"]
+        if report.get("market"):
+            mem["daily_market"] = report["market"]
+        mem["daily_report_ts"] = time.time()
         try:
             fund_codes = list(all_funds_data.keys())
             if report.get("risk"):

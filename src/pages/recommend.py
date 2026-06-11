@@ -38,6 +38,9 @@ def render_recommend_page(ai):
                         prompt = f"{FUND_SELECTION_RULES}\n\n请分析以下基金，按综合评分排序，推荐前5只，每只给评分和一句话理由：\n\n{ranks}"
                         result = ai.call_api("你是一个专业的基金分析师，严格按照评分规则打分。", prompt, max_tokens=1000)
                         st.session_state.rank_result = {"raw": enriched, "ai_analysis": result}
+                        # 写入共享内存
+                        if "ai_memory" in st.session_state and result:
+                            st.session_state.ai_memory["last_rank_analysis"] = result
                         try:
                             from src.data.db import save_ranking
                             save_ranking(rank_by, enriched)
@@ -72,6 +75,11 @@ def render_recommend_page(ai):
             funds_cache = st.session_state.get("_funds_cache", {})
             index_cache = st.session_state.get("_index_cache", [])
 
+            mem = st.session_state.get("ai_memory", {})
+            daily_risk_hint = ""
+            if mem.get("daily_risk"):
+                daily_risk_hint = f"\n[今日风险评估参考] {mem['daily_risk'][:300]}"
+
             if not news_cache:
                 from src.data.news import fetch_market_news
                 news_cache = fetch_market_news()
@@ -84,9 +92,12 @@ def render_recommend_page(ai):
             else:
                 with st.spinner("AI 分析新闻中..."):
                     funds_data_list = [{"code": code, "est": fd.get("estimate"), "hist": fd.get("history"), "holdings": fd.get("holdings")} for code, fd in funds_cache.items()]
-                    result = ai.news_driven_recommend(news_cache, index_cache, funds_data_list)
+                    result = ai.news_driven_recommend(news_cache, index_cache, funds_data_list, extra_context=daily_risk_hint)
                     st.session_state.news_driven_result = result
                     st.session_state.news_driven_loading = False
+                    # 写入共享内存
+                    if "ai_memory" in st.session_state and result:
+                        st.session_state.ai_memory["last_news_recommend"] = result
                 st.rerun()
 
         news_result = st.session_state.get("news_driven_result")
