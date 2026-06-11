@@ -318,6 +318,7 @@ with st.sidebar.expander("🤖 AI 管家", expanded=False):
                     pass
             except Exception as e:
                 st.session_state.chat_history.append({"role": "assistant", "content": f"[失败: {e}]"})
+        st.toast("已回答", icon="✅")
         st.rerun()
 
 # ============================================
@@ -454,10 +455,11 @@ refresh_gap = config.get("refresh_interval_seconds", 120)
 if "refresh_ts" not in st.session_state:
     st.session_state.refresh_ts = time.time()
 elif time.time() - st.session_state.refresh_ts >= refresh_gap:
-    st.session_state.refresh_ts = time.time()
+    st.session_state.refresh_ts = time.time() + 10
     st.cache_data.clear()
 
 st.markdown("""
 <div style="margin-top:16px;font-size:10px;color:#3a3d4a;text-align:center">
 天天基金/腾讯证券/新浪财经 | 自动 120s
-</div>""", unsafe_allow_html=True)
+</div>""", unsafe_allow_html=True)
+
